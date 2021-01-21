@@ -1,0 +1,50 @@
+version: "3.7"
+
+services:
+  postgres:
+    image: postgres:11.9
+    environment:
+      - POSTGRES_DB=nikkidb
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - ./init:/docker-entrypoint-initdb.d/
+    ports:
+      - "5432:5432"      
+      
+  pgweb:
+    restart: always
+    image: sosedoff/pgweb
+    ports: 
+      - "8081:8081" 
+    links: 
+      - postgres:postgres  # my database container is called postgres, not db
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/nikkidb?sslmode=disable
+    depends_on:
+      - postgres
+  app:
+    build: 
+      context: .
+      dockerfile: ./app/Dockerfile
+    volumes:
+      - type: bind
+        source: ./app/src
+        target: /app/src
+    ports:
+      - "8080:3000"     
+    tty: true
+    depends_on:
+      - postgres
+
+  web:
+    build:
+      context: .
+      dockerfile: ./web/Dockerfile
+    volumes:
+      - ./web/src:/web/src
+    ports:
+      - "3000:3000"
+    tty: true      
+    depends_on:
+      - postgres
