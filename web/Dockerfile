@@ -13,6 +13,7 @@ RUN npm install -g --no-progress yarn \
     && yarn config set yarn-offline-mirror-pruning true
 
 EXPOSE 3000
+ENV HOST=0.0.0.0
 
 RUN mkdir -p /web/src
 WORKDIR /web/src

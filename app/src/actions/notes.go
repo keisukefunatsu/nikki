@@ -30,11 +30,12 @@ func NoteList(c buffalo.Context) error {
 		// TODO Implement here
 	}
 	res.Notes = notes
+	c.Response().Header().Set("X-Pagination", q.Paginator.String())
 
 	return c.Render(http.StatusOK, r.JSON(res))
 }
 
-// NoteList returns notes model
+// NoteShow returns note model
 func NoteShow(c buffalo.Context) error {
 	res := NoteAPIResponse{}
 	note := &models.Note{}
@@ -51,19 +52,27 @@ func NoteShow(c buffalo.Context) error {
 	return c.Render(http.StatusOK, r.JSON(res))
 }
 
-// NoteList returns notes model
+// NoteCreate creates note record
 func NoteCreate(c buffalo.Context) error {
 	res := NoteAPIResponse{}
-	notes := &models.Notes{}
+	note := &models.Note{}
+	if err := c.Bind(note); err != nil {
+		return errors.WithStack(err)
+	}
 	tx, ok := c.Value("tx").(*pop.Connection)
 	if !ok {
 		return errors.WithStack(errors.New("no transaction found"))
 	}
+	verrs, err := tx.ValidateAndCreate(note)
 
-	if err := tx.All(notes); err != nil {
-		// TODO Implement here
+	if err != nil {
+		return errors.WithStack(err)
 	}
-	res.Notes = notes
 
-	return c.Render(http.StatusOK, r.JSON(res))
+	if verrs.HasAny() {
+		return c.Render(http.StatusUnprocessableEntity, r.JSON(verrs))
+	}
+	res.Note = note
+
+	return c.Render(http.StatusCreated, r.JSON(res))
 }
